@@ -118,3 +118,15 @@ body {
 .article-body th {
   background: var(--color-surface-2);
 }
+
+/* Globo da Home: a faixa de pontos desliza uma volta inteira (720 unidades do SVG). */
+@media (prefers-reduced-motion: no-preference) {
+  .globe-strip {
+    animation: globe-spin 90s linear infinite;
+  }
+}
+@keyframes globe-spin {
+  to {
+    transform: translateX(-720px);
+  }
+}

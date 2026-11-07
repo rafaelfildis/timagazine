@@ -8,6 +8,7 @@ import { PostCard } from "@/components/posts/PostCard";
 import { ShareButtons } from "@/components/posts/ShareButtons";
 import { SourceCredit } from "@/components/posts/SourceCredit";
 import { ViewPing } from "@/components/posts/ViewPing";
+import { WhatsAppCta } from "@/components/site/WhatsAppCta";
 import { siteConfig } from "@/config/site";
 import { MODALITIES, ORIGIN_LABEL } from "@/config/taxonomy";
 import { db } from "@/lib/db/client";
@@ -191,6 +192,8 @@ export default async function ArticlePage({ params }: Props) {
           </ul>
         </section>
       )}
+
+      <WhatsAppCta className="mt-12" />
     </article>
   );
 }

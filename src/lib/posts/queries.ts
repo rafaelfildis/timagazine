@@ -33,9 +33,9 @@ export type PostFull = PostCard & {
 };
 
 /** Visível ao público: publicada e com data de publicação já alcançada. */
-const isPublished = sql`${posts.status} = 'published' and ${posts.publishedAt} <= now()`;
+export const isPublished = sql`${posts.status} = 'published' and ${posts.publishedAt} <= now()`;
 
-const cardColumns = {
+export const cardColumns = {
   id: posts.id,
   slug: posts.slug,
   title: posts.title,
@@ -54,7 +54,7 @@ const cardColumns = {
 
 type CardRow = Omit<PostCard, "publishedAt"> & { publishedAt: Date | null };
 /** Só chega aqui o que passou por `isPublished`, logo publishedAt nunca é nulo. */
-const toCard = <T extends CardRow>(r: T): Omit<T, "publishedAt"> & { publishedAt: Date } => ({
+export const toCard = <T extends CardRow>(r: T): Omit<T, "publishedAt"> & { publishedAt: Date } => ({
   ...r,
   publishedAt: r.publishedAt as Date,
 });

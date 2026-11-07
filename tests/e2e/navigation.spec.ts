@@ -11,16 +11,16 @@ test.describe("celular (375 px)", () => {
     await botao.click();
     const aberto = page.getByRole("button", { name: "Fechar menu" });
     await expect(aberto).toHaveAttribute("aria-expanded", "true");
-    await expect(page.getByRole("link", { name: "Notícias" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Notícias", exact: true })).toBeVisible();
 
     await aberto.click();
     await expect(page.getByRole("button", { name: "Abrir menu" })).toHaveAttribute("aria-expanded", "false");
-    await expect(page.getByRole("link", { name: "Notícias" })).toBeHidden();
+    await expect(page.getByRole("link", { name: "Notícias", exact: true })).toBeHidden();
 
     await page.getByRole("button", { name: "Abrir menu" }).click();
-    await expect(page.getByRole("link", { name: "Notícias" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Notícias", exact: true })).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("link", { name: "Notícias" })).toBeHidden();
+    await expect(page.getByRole("link", { name: "Notícias", exact: true })).toBeHidden();
     await expect(page.getByRole("button", { name: "Abrir menu" })).toBeFocused();
   });
 });
@@ -32,7 +32,7 @@ test.describe("desktop (1440 px)", () => {
     await page.goto("/");
     const nav = page.getByRole("navigation", { name: "Menu principal", exact: true });
     await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
-    await expect(nav.getByRole("link", { name: "Notícias" })).not.toHaveAttribute("aria-current", "page");
+    await expect(nav.getByRole("link", { name: "Notícias", exact: true })).not.toHaveAttribute("aria-current", "page");
   });
 
   test("itens de planos futuros não aparecem", async ({ page }) => {
