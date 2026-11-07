@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { createTestDb } from "@/lib/db/test-db";
 import { settings } from "@/lib/db/schema";
-import { readSetting } from "@/lib/settings";
+import { DatabaseConfigError, type Db } from "@/lib/db/client";
+import { getSetting, readSetting } from "@/lib/settings";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -23,5 +24,21 @@ describe("readSetting", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await readSetting(db, "whatsapp_channel_url")).toBeNull();
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("DATABASE_URL ausente é erro de configuração: continua lançando (readSetting e getSetting)", async () => {
+    const saved = process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL;
+    try {
+      const faltando = new Proxy({} as Db, {
+        get() {
+          throw new DatabaseConfigError();
+        },
+      });
+      await expect(readSetting(faltando, "whatsapp_channel_url")).rejects.toBeInstanceOf(DatabaseConfigError);
+      await expect(getSetting("whatsapp_channel_url")).rejects.toBeInstanceOf(DatabaseConfigError);
+    } finally {
+      if (saved !== undefined) process.env.DATABASE_URL = saved;
+    }
   });
 });

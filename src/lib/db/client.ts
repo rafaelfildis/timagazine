@@ -10,6 +10,14 @@ import * as schema from "./schema";
 /** Tipo comum aos dois drivers (Neon em produção, PGlite em dev/testes). */
 export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
+/** Erro de configuração (DATABASE_URL ausente): nunca deve ser engolido. */
+export class DatabaseConfigError extends Error {
+  constructor() {
+    super("DATABASE_URL não definida. Use pglite:./.data/dev em desenvolvimento ou a URL do Neon.");
+    this.name = "DatabaseConfigError";
+  }
+}
+
 export const PGLITE_PREFIX = "pglite:";
 
 /** PGlite em arquivo (cria a pasta pai, que o PGlite não cria). */
@@ -34,9 +42,7 @@ function getDb(): Db {
   if (!globalForDb.__tiMagazineDb) {
     const url = process.env.DATABASE_URL;
     if (!url) {
-      throw new Error(
-        "DATABASE_URL não definida. Use pglite:./.data/dev em desenvolvimento ou a URL do Neon.",
-      );
+      throw new DatabaseConfigError();
     }
     globalForDb.__tiMagazineDb = createDb(url);
   }
@@ -44,9 +50,10 @@ function getDb(): Db {
 }
 
 /**
- * Fachada preguiçosa: nada conecta (nem exige DATABASE_URL) ao importar.
- * A conexão nasce no primeiro acesso. Atenção: o layout do site lê `settings`, então
- * `next build` precisa de DATABASE_URL apontando para um banco já migrado.
+ * Fachada preguiçosa: nada conecta ao importar; a conexão nasce no primeiro acesso.
+ * O `next build` exige DATABASE_URL apontando para um banco já migrado (o layout do
+ * site lê `settings`). DATABASE_URL ausente falha alto (DatabaseConfigError); erros de
+ * consulta em leituras não essenciais (settings) degradam para vazio em quem as chama.
  */
 export const db: Db = new Proxy({} as Db, {
   get(_target, prop) {
