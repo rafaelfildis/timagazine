@@ -104,3 +104,10 @@ export function filtersToSearchParams(f: PostFilters): URLSearchParams {
   if (f.pagina > 1) p.set("pagina", String(f.pagina));
   return p;
 }
+
+/** Algum filtro (ou ordenação fora do padrão) ativo? A paginação não conta. */
+export function hasActiveFilters(f: PostFilters): boolean {
+  return Boolean(
+    f.q || f.categoria || f.modalidade || f.autor || f.tag?.length || f.de || f.ate,
+  ) || f.ordem !== defaultOrdem(f.q);
+}
