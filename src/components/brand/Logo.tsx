@@ -2,10 +2,7 @@ import Image from "next/image";
 
 type Props = { variant?: "horizontal" | "symbol"; className?: string; priority?: boolean };
 
-/**
- * O arquivo horizontal é um JPG sobre preto puro: o contêiner pinta #000 atrás
- * para não aparecer uma caixa contra o fundo #070A07. Nunca distorce nem recorta.
- */
+/** PNG com transparência derivado do JPG original (fonte: logo-horizontal.jpg). */
 export function Logo({ variant = "horizontal", className = "", priority = false }: Props) {
   if (variant === "symbol") {
     return (
@@ -20,13 +17,13 @@ export function Logo({ variant = "horizontal", className = "", priority = false 
     );
   }
   return (
-    <span className={`inline-flex rounded-sm bg-black ${className}`}>
+    <span className={`inline-flex ${className}`}>
       <Image
-        src="/brand/logo-horizontal.jpg"
+        src="/brand/logo-horizontal.png"
         alt="TI MAGAZINE"
         width={1600}
         height={533}
-        className="h-10 w-auto"
+        className="h-9 w-auto lg:h-12"
         priority={priority}
       />
     </span>

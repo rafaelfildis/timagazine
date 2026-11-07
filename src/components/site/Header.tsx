@@ -9,8 +9,8 @@ import { WhatsAppButton } from "./WhatsAppButton";
 export async function Header() {
   const items = visibleNav();
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-bg/95 backdrop-blur">
-      <div className="relative mx-auto flex h-[60px] max-w-7xl items-center gap-4 px-4 lg:h-[72px] lg:px-6">
+    <header className="sticky top-0 z-40 box-border h-[60px] border-b border-border bg-bg/95 backdrop-blur lg:h-[72px]">
+      <div className="relative mx-auto flex h-full max-w-7xl items-center gap-4 px-4 lg:px-6">
         <Link href="/" aria-label="TI MAGAZINE — página inicial" className="shrink-0">
           <Logo priority />
         </Link>

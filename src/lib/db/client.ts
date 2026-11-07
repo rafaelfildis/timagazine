@@ -45,7 +45,8 @@ function getDb(): Db {
 
 /**
  * Fachada preguiçosa: nada conecta (nem exige DATABASE_URL) ao importar.
- * A conexão nasce no primeiro acesso, então `next build` sem env continua passando.
+ * A conexão nasce no primeiro acesso. Atenção: o layout do site lê `settings`, então
+ * `next build` precisa de DATABASE_URL apontando para um banco já migrado.
  */
 export const db: Db = new Proxy({} as Db, {
   get(_target, prop) {
