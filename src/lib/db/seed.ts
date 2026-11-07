@@ -130,7 +130,7 @@ export async function seed(db: Db, opts: { posts: number }) {
       sponsored: i === 4,
       sourceName: curadoria ? "Agência Exemplo" : null,
       sourceUrl: curadoria ? "https://example.com/materia-original" : null,
-      imageUrl: hasImage ? `/images/exemplo-${(i % 4) + 1}.jpg` : null,
+      imageUrl: hasImage ? "/brand/capa-padrao.jpg" : null,
       imageAlt: hasImage ? `Imagem ilustrativa da matéria ${i + 1}` : null,
       imageAi: hasImage && i % 4 === 1,
       status: "published" as const,

@@ -189,3 +189,13 @@ export async function getRelated(
     .limit(n);
   return rows.map(toCard);
 }
+
+/** Soma 1 leitura, só em matéria visível ao público. Devolve se alguma linha foi alterada. */
+export async function incrementViews(db: Db, id: string): Promise<boolean> {
+  const rows = await db
+    .update(posts)
+    .set({ views: sql`${posts.views} + 1` })
+    .where(and(eq(posts.id, id), isPublished))
+    .returning({ id: posts.id });
+  return rows.length > 0;
+}
