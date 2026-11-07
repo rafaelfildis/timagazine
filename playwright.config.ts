@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import { config as loadEnv } from "dotenv";
+
+// Credenciais do admin de teste (E2E_ADMIN_*): só em .env.test, que o git ignora.
+loadEnv({ path: ".env.test", quiet: true });
 
 const PORT = 3100;
 const baseURL = process.env.BASE_URL ?? `http://localhost:${PORT}`;
@@ -16,7 +20,12 @@ export default defineConfig({
     ? undefined
     : {
         command: `npm run e2e:prepare && npm run build && npm run start -- -p ${PORT}`,
-        env: { DATABASE_URL: "pglite:./.data/e2e" },
+        env: {
+          DATABASE_URL: "pglite:./.data/e2e",
+          // Valor só para teste, sem uso em produção (lá AUTH_SECRET vem do ambiente).
+          AUTH_SECRET: "e2e-only-secret-not-for-production-0123456789",
+          AUTH_TRUST_HOST: "true",
+        },
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 240_000,

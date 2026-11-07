@@ -13,14 +13,17 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.mts",
     "db:seed": "tsx scripts/seed.mts",
-    "e2e:prepare": "tsx scripts/e2e-prepare.mts"
+    "e2e:prepare": "tsx scripts/e2e-prepare.mts",
+    "create-admin": "tsx scripts/create-admin.mts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.15",
     "@neondatabase/serverless": "^1.2.0",
+    "@node-rs/argon2": "^2.2.2",
     "drizzle-orm": "^0.45.4",
     "lucide-react": "^1.70.0",
     "next": "16.4.5",
+    "next-auth": "^5.0.0-beta.32",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-markdown": "^10.1.0",
@@ -38,6 +41,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.2.1",
+    "dotenv": "^18.0.9",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
