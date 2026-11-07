@@ -1,47 +1,40 @@
+import { LAND_COLS, LAND_MASK, LAND_ROWS } from "./land-mask";
+
 /**
  * Globo de pontos verdes, só SVG (sem canvas nem bibliotecas 3D).
- * Os pontos formam "continentes" por uma função determinística (soma de senos, sem
- * aleatoriedade), calculada uma vez ao carregar o módulo. A rotação é uma faixa de pontos
- * que desliza sob a máscara circular (CSS, só com `prefers-reduced-motion: no-preference`;
+ * Pontos só sobre terra (máscara embutida em land-mask.ts); o oceano tem pontos bem tênues.
+ * A intensidade cai com a latitude (sombreado) e a máscara radial apaga a borda (limbo).
+ * Tudo é calculado uma vez ao carregar o módulo, sem aleatoriedade. A rotação é a faixa de
+ * pontos deslizando sob a máscara circular (CSS, só com `prefers-reduced-motion: no-preference`;
  * ver `.globe-strip` em globals.css). Decorativo: `aria-hidden`.
  */
-const COLS = 72; // 5° de longitude por coluna
-const ROWS = 36; // 5° de latitude por linha
-const STEP = 10;
-const PERIOD = COLS * STEP; // largura de uma volta completa
-const SIZE = ROWS * STEP; // diâmetro do globo
+const STEP = 8;
+const PERIOD = LAND_COLS * STEP; // largura de uma volta completa (720)
+const SIZE = LAND_ROWS * STEP; // diâmetro do globo (360)
 
-const rad = (deg: number) => (deg * Math.PI) / 180;
-
-/** Densidade "de terra"; só precisa parecer um mapa, não ser um. */
-function land(lonDeg: number, latDeg: number): number {
-  const lo = rad(lonDeg);
-  const la = rad(latDeg);
-  return (
-    Math.sin(lo * 1.3 + la * 0.7) * Math.cos(la * 2.1 - lo * 0.4) +
-    0.6 * Math.sin(lo * 2.7 + 1.1) * Math.cos(la * 1.6 + 0.5) +
-    0.35 * Math.sin(lo * 5.1 - la * 3.3)
-  );
-}
-
+/** Camadas, da mais forte à mais fraca: terra perto do equador, terra em latitudes médias, terra polar, oceano. */
 function buildLayers(): string[] {
-  const layers = ["", "", ""]; // do mais forte ao mais fraco
-  for (let row = 0; row < ROWS; row++) {
-    const lat = 90 - (row + 0.5) * 5;
-    if (Math.abs(lat) > 80) continue;
-    for (let col = 0; col < COLS; col++) {
-      const lon = (col + 0.5) * 5;
-      const v = land(lon, lat);
-      if (v < 0.05) continue;
-      const layer = v > 0.75 ? 0 : v > 0.4 ? 1 : 2;
-      layers[layer] += `M${col * STEP + STEP / 2} ${row * STEP + STEP / 2}h0`;
+  const layers = ["", "", "", ""];
+  for (let row = 0; row < LAND_ROWS; row++) {
+    const lat = Math.abs(90 - (row + 0.5) * (180 / LAND_ROWS));
+    const south = 90 - (row + 0.5) * (180 / LAND_ROWS) < -60; // sem Antártida: lê-se como borda
+    if (lat > 80 || south) continue;
+    for (let col = 0; col < LAND_COLS; col++) {
+      const x = col * STEP + STEP / 2;
+      const y = row * STEP + STEP / 2;
+      if (LAND_MASK[row][col] === "1") {
+        layers[lat < 30 ? 0 : lat < 55 ? 1 : 2] += `M${x} ${y}h0`;
+      } else if (row % 2 === 0 && col % 2 === 0 && lat < 70) {
+        layers[3] += `M${x} ${y}h0`;
+      }
     }
   }
   return layers;
 }
 
 const LAYERS = buildLayers();
-const OPACITY = [0.95, 0.65, 0.35];
+const OPACITY = [1, 0.75, 0.5, 0.13];
+const WIDTH = [3.4, 3.4, 3.4, 2];
 
 /** O chamador posiciona (precisa ser `absolute`/`relative`) e dimensiona o globo. */
 export function HeroGlobe({ className = "" }: { className?: string }) {
@@ -66,9 +59,9 @@ export function HeroGlobe({ className = "" }: { className?: string }) {
           <mask id="hg-mask">
             <circle cx={SIZE / 2} cy={SIZE / 2} r={SIZE / 2} fill="url(#hg-fade)" />
           </mask>
-          <g id="hg-dots" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round">
+          <g id="hg-dots" fill="none" stroke="currentColor" strokeLinecap="round">
             {LAYERS.map((d, i) => (
-              <path key={i} d={d} strokeOpacity={OPACITY[i]} />
+              <path key={i} d={d} strokeOpacity={OPACITY[i]} strokeWidth={WIDTH[i]} />
             ))}
           </g>
         </defs>
@@ -85,7 +78,7 @@ export function HeroGlobe({ className = "" }: { className?: string }) {
           r={SIZE / 2 - 1}
           fill="none"
           stroke="currentColor"
-          strokeOpacity="0.3"
+          strokeOpacity="0.55"
         />
       </svg>
     </div>
