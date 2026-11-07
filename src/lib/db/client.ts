@@ -27,19 +27,20 @@ export function createDb(url: string): Db {
   return drizzleNeon({ client: new Pool({ connectionString: url }), schema }) as unknown as Db;
 }
 
-let instance: Db | undefined;
+// Em globalThis: o hot-reload do dev não pode abrir um 2º PGlite no mesmo diretório.
+const globalForDb = globalThis as unknown as { __tiMagazineDb?: Db };
 
 function getDb(): Db {
-  if (!instance) {
+  if (!globalForDb.__tiMagazineDb) {
     const url = process.env.DATABASE_URL;
     if (!url) {
       throw new Error(
         "DATABASE_URL não definida. Use pglite:./.data/dev em desenvolvimento ou a URL do Neon.",
       );
     }
-    instance = createDb(url);
+    globalForDb.__tiMagazineDb = createDb(url);
   }
-  return instance;
+  return globalForDb.__tiMagazineDb;
 }
 
 /**

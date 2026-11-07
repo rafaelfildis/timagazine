@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.mts",
-    "db:seed": "tsx scripts/seed.mts"
+    "db:seed": "tsx scripts/seed.mts",
+    "e2e:prepare": "tsx scripts/e2e-prepare.mts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.15",

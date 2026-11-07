@@ -15,7 +15,8 @@ export default defineConfig({
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: `npm run build && npm run start -- -p ${PORT}`,
+        command: `npm run e2e:prepare && npm run build && npm run start -- -p ${PORT}`,
+        env: { DATABASE_URL: "pglite:./.data/e2e" },
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 240_000,
