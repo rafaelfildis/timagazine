@@ -40,6 +40,8 @@ export default defineConfig({
           // Valor só para teste, sem uso em produção (lá AUTH_SECRET vem do ambiente).
           AUTH_SECRET: "e2e-only-secret-not-for-production-0123456789",
           AUTH_TRUST_HOST: "true",
+          // Sem Vercel Blob no e2e: libera gravar/servir imagens em public/uploads.
+          ALLOW_LOCAL_UPLOADS: "1",
         },
         url: baseURL,
         reuseExistingServer: !process.env.CI,

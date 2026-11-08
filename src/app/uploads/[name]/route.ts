@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { localUploadsAllowed } from "@/lib/upload";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +15,12 @@ const NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jp
 
 /**
  * Serve as imagens enviadas SEM Vercel Blob (desenvolvimento e e2e), gravadas em public/uploads.
+ * Só com ALLOW_LOCAL_UPLOADS=1; fora disso responde 404 (em produção as imagens ficam no Blob).
  * O `next start` só conhece os arquivos de public/ presentes na inicialização, então os
- * enviados depois precisam desta rota. Em produção as imagens ficam no Blob e esta rota não é usada.
+ * enviados depois precisam desta rota.
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ name: string }> }) {
+  if (!localUploadsAllowed()) return new Response(null, { status: 404 });
   const { name } = await params;
   const match = NAME.exec(name);
   if (!match) return new Response(null, { status: 404 });

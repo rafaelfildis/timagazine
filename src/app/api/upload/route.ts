@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { put } from "@vercel/blob";
 import { requireRole } from "@/lib/auth";
-import { MAX_UPLOAD_BYTES, isSameOriginRequest, sniffImage } from "@/lib/upload";
+import { MAX_UPLOAD_BYTES, isSameOriginRequest, localUploadsAllowed, sniffImage } from "@/lib/upload";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +25,12 @@ export async function POST(request: Request) {
   // Sem sessão: redireciona ao login; papel insuficiente: 403.
   await requireRole("editor");
 
+  // Sem Vercel Blob só grava no disco se liberado (dev/e2e); na Vercel o disco é somente leitura.
+  const useBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  if (!useBlob && !localUploadsAllowed()) {
+    return json({ error: "Armazenamento de imagens não configurado." }, 503);
+  }
+
   const length = Number(request.headers.get("content-length"));
   if (!Number.isFinite(length) || length <= 0) return json({ error: "Envie o arquivo de imagem." }, 411);
   if (length > MAX_BODY_BYTES) return json({ error: "A imagem passa de 5 MB." }, 413);
@@ -45,7 +51,7 @@ export async function POST(request: Request) {
   }
   const name = `${randomUUID()}.${kind.ext}`;
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
+  if (useBlob) {
     const blob = await put(`uploads/${name}`, Buffer.from(data), {
       access: "public",
       contentType: kind.mime,
@@ -54,7 +60,7 @@ export async function POST(request: Request) {
     return json({ url: blob.url }, 200);
   }
 
-  // Sem Vercel Blob (desenvolvimento e e2e): grava em public/uploads, ignorado pelo git.
+  // ALLOW_LOCAL_UPLOADS=1 (desenvolvimento e e2e): grava em public/uploads, ignorado pelo git.
   const dir = join(process.cwd(), "public", "uploads");
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, name), data);

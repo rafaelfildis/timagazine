@@ -14,3 +14,14 @@ test("home responde 200, usa pt-BR e não tem violações críticas de acessibil
   );
   expect(graves).toEqual([]);
 });
+
+test("cabeçalhos de segurança em páginas, painel, API e arquivos estáticos", async ({ request }) => {
+  for (const path of ["/", "/noticias", "/admin/login", "/feed.xml", "/brand/capa-padrao.jpg"]) {
+    const res = await request.get(path, { maxRedirects: 0 });
+    const h = res.headers();
+    expect(h["x-frame-options"], path).toBe("DENY");
+    expect(h["content-security-policy"], path).toBe("frame-ancestors 'none'");
+    expect(h["referrer-policy"], path).toBe("strict-origin-when-cross-origin");
+    expect(h["x-content-type-options"], path).toBe("nosniff");
+  }
+});

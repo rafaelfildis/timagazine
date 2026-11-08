@@ -33,6 +33,15 @@ describe("<PostCard>", () => {
     expect(screen.getByRole("heading").className).toContain("line-clamp-3");
   });
 
+  it("zoom da imagem no hover só com movimento permitido (motion-safe)", () => {
+    const { container } = render(<PostCard post={base} size="md" />);
+    const classes = container.querySelector("img")!.className.split(/\s+/);
+    expect(classes).toEqual(
+      expect.arrayContaining(["motion-safe:transition-transform", "motion-safe:group-hover:scale-105"]),
+    );
+    expect(classes.filter((c) => /(^|:)(scale-|transition)/.test(c) && !c.startsWith("motion-safe:"))).toEqual([]);
+  });
+
   it("mostra selo Patrocinado", () => {
     render(<PostCard post={{ ...base, sponsored: true }} size="sm" />);
     expect(screen.getByText("Patrocinado")).toBeInTheDocument();

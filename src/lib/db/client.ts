@@ -26,13 +26,29 @@ export function createPglite(dataDir: string) {
   return new PGlite({ dataDir, extensions: { unaccent } });
 }
 
-/** `pglite:./.data/dev` usa PGlite em arquivo; qualquer outra URL usa Neon. */
+/**
+ * `pglite:./.data/dev` usa PGlite em arquivo; qualquer outra URL usa Neon.
+ *
+ * O PGlite é importado no topo (e não só no ramo `pglite:`) de propósito: `createDb` e a
+ * fachada `db` abaixo são síncronos, e um `import()` dinâmico obrigaria a tornar assíncrono
+ * todo acesso ao banco (ou a embrulhar os query builders do Drizzle, que são encadeáveis e
+ * também usados como subconsultas). `drizzle-orm/pglite` importa `@electric-sql/pglite` no
+ * próprio módulo, então um `require` tardio duplicaria o drizzle-orm no bundle. O custo na
+ * Vercel é só carregar o JS do pacote (externo, ver serverExternalPackages): o wasm só é
+ * lido quando um PGlite é criado, o que nunca acontece com a URL do Neon.
+ */
 export function createDb(url: string): Db {
   if (url.startsWith(PGLITE_PREFIX)) {
     const client = createPglite(url.slice(PGLITE_PREFIX.length));
     return drizzlePglite({ client, schema }) as unknown as Db;
   }
-  return drizzleNeon({ client: new Pool({ connectionString: url }), schema }) as unknown as Db;
+  const pool = new Pool({ connectionString: url });
+  // Sem ouvinte, um erro numa conexão ociosa (queda de rede, Neon suspendendo o compute)
+  // vira exceção não tratada e derruba o processo. O pool descarta a conexão e abre outra.
+  pool.on("error", (error: Error) => {
+    console.error("[db] erro numa conexão ociosa do Neon:", error.message);
+  });
+  return drizzleNeon({ client: pool, schema }) as unknown as Db;
 }
 
 // Em globalThis: o hot-reload do dev não pode abrir um 2º PGlite no mesmo diretório.

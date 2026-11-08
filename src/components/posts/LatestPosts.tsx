@@ -36,8 +36,9 @@ export function LatestPosts({ posts, pageSize }: { posts: PostCardData[]; pageSi
       </ul>
       {posts.length >= pageSize && (
         <div className="mt-8 flex justify-center">
+          {/* /noticias do início: a página 2 de lá (12 por página) pularia as matérias 9 a 11. */}
           <Link
-            href="/noticias?pagina=2"
+            href="/noticias"
             className="inline-flex min-h-11 items-center justify-center rounded-md border border-primary px-6 text-sm font-semibold text-primary hover:bg-primary/10"
           >
             Carregar mais

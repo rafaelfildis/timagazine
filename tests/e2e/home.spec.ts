@@ -47,7 +47,7 @@ test.describe("desktop (1440x900)", () => {
       "href",
       "/noticias?categoria=ciberseguranca",
     );
-    await expect(page.getByRole("link", { name: "Carregar mais" })).toHaveAttribute("href", "/noticias?pagina=2");
+    await expect(page.getByRole("link", { name: "Carregar mais" })).toHaveAttribute("href", "/noticias");
   });
 
   test("atalhos de planos futuros e seções futuras não aparecem; sem URL, não há chamada do WhatsApp", async ({

@@ -49,3 +49,12 @@ export function isSameOriginRequest(headers: Headers): boolean {
   }
   return site === "same-origin";
 }
+
+/**
+ * Gravar e servir imagens em public/uploads (sem Vercel Blob) só com ALLOW_LOCAL_UPLOADS=1:
+ * desenvolvimento e e2e. Não depende de NODE_ENV (o e2e roda `next start`, que é produção);
+ * na Vercel o disco é somente leitura, então sem Blob o envio responde 503.
+ */
+export function localUploadsAllowed(value: string | undefined = process.env.ALLOW_LOCAL_UPLOADS): boolean {
+  return value === "1";
+}

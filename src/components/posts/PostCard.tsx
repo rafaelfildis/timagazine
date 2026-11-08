@@ -31,7 +31,7 @@ export function PostCard({ post, size, priority = false }: Props) {
       fill
       sizes={SIZES[size]}
       priority={priority}
-      className="object-cover transition-transform duration-300 motion-reduce:transition-none group-hover:scale-105"
+      className="object-cover motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-105"
     />
   );
   const meta = (
