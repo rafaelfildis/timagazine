@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
-import { requireRole, signOut } from "@/lib/auth";
+import { hasRole, requireRole, signOut } from "@/lib/auth";
 
 const MENU = [
-  { href: "/admin", label: "Visão geral" },
-  { href: "/admin/materias", label: "Matérias" },
-  { href: "/admin/destaques", label: "Destaques da Home" },
-  { href: "/admin/paginas", label: "Páginas" },
-  { href: "/admin/mensagens", label: "Mensagens" },
-  { href: "/admin/configuracoes", label: "Configurações" },
+  { href: "/admin", label: "Visão geral", role: "editor" },
+  { href: "/admin/materias", label: "Matérias", role: "editor" },
+  { href: "/admin/destaques", label: "Destaques da Home", role: "editor" },
+  { href: "/admin/paginas", label: "Páginas", role: "admin" },
+  { href: "/admin/mensagens", label: "Mensagens", role: "editor" },
+  { href: "/admin/configuracoes", label: "Configurações", role: "admin" },
 ] as const;
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export default async function PainelLayout({ children }: { children: React.React
         </div>
         <nav aria-label="Painel" className="px-2 pb-3 md:pb-0">
           <ul className="flex flex-wrap gap-1 md:block md:space-y-1">
-            {MENU.map((item) => (
+            {MENU.filter((item) => hasRole(user.role, item.role)).map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
@@ -55,7 +55,7 @@ export default async function PainelLayout({ children }: { children: React.React
           </button>
         </form>
       </aside>
-      <main className="flex-1 p-4 sm:p-8">{children}</main>
+      <main className="min-w-0 flex-1 p-4 sm:p-8">{children}</main>
     </div>
   );
 }

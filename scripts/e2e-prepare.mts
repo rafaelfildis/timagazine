@@ -28,5 +28,12 @@ if (adminEmail && adminPassword) {
 } else {
   console.log("E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD ausentes: sem admin de teste (specs do painel serão ignorados).");
 }
+// Editor de teste (papel insuficiente para Páginas e Configurações): opcional.
+const editorEmail = process.env.E2E_EDITOR_EMAIL;
+const editorPassword = process.env.E2E_EDITOR_PASSWORD;
+if (editorEmail && editorPassword) {
+  await createUser(db, { email: editorEmail, name: "Editor E2E", password: editorPassword, role: "editor" });
+  console.log("Editor de teste criado.");
+}
 console.log("Banco do e2e pronto em .data/e2e");
 process.exit(0);

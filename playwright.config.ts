@@ -14,7 +14,22 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: "list",
   use: { baseURL, trace: "on-first-retry" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    // Leitura do site: assume o banco semeado (14 matérias, sem WhatsApp).
+    {
+      name: "chromium",
+      testIgnore: /admin-(publish|roles)\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    // Os specs do painel alteram o banco (publicam, mudam destaques e WhatsApp); por isso
+    // rodam só depois que todos os de leitura terminam.
+    {
+      name: "chromium-painel",
+      testMatch: /admin-(publish|roles)\.spec\.ts/,
+      dependencies: ["chromium"],
+      use: { ...devices["Desktop Chrome"] },
+    },
+  ],
   // Com BASE_URL definido, os testes rodam contra um ambiente já no ar.
   webServer: process.env.BASE_URL
     ? undefined
