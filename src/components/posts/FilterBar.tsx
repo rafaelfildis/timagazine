@@ -68,15 +68,24 @@ export function FilterBar({ filters, options }: { filters: PostFilters; options:
   const [values, setValues] = useState<Values>(() => fromFilters(filters));
   const [tagsOpen, setTagsOpen] = useState(Boolean(filters.tag?.length));
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // URLs que este componente acabou de empurrar: a chegada delas não deve sobrescrever o que
-  // a pessoa continua digitando. Qualquer outra mudança de URL (limpar, voltar, busca do
-  // cabeçalho) reflete nos campos.
-  const pushed = useRef(new Set<string>());
-
+  // Fila, em ordem, das URLs que este componente pediu e que ainda não chegaram. A chegada de
+  // uma delas não sobrescreve o que a pessoa continua digitando (e descarta as anteriores a
+  // ela, que o roteador pode ter pulado). Uma URL fora da fila é mudança externa (limpar,
+  // voltar, busca do cabeçalho): os campos voltam a refletir a URL.
+  const queue = useRef<string[]>([]);
   const urlKey = toQueryString(fromFilters(filters));
+  // URL atual, para `push` (que roda em handlers e no debounce) comparar sem closure velha.
+  const currentKey = useRef(urlKey);
+
   useEffect(() => {
-    if (pushed.current.delete(urlKey)) return;
-    pushed.current.clear();
+    currentKey.current = urlKey;
+    const mine = queue.current.indexOf(urlKey);
+    if (mine !== -1) {
+      queue.current.splice(0, mine + 1);
+      return;
+    }
+    queue.current = [];
+    if (timer.current) clearTimeout(timer.current);
     setValues(fromFilters(filters));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `urlKey` já resume `filters`
   }, [urlKey]);
@@ -90,7 +99,11 @@ export function FilterBar({ filters, options }: { filters: PostFilters; options:
 
   function push(next: Values) {
     const qs = toQueryString(next);
-    pushed.current.add(qs);
+    // Destino já pedido (ou já na URL, ex.: Enter sem mudar nada): não navega nem registra,
+    // senão a fila guardaria uma URL que nunca vai "chegar".
+    const target = queue.current.length ? queue.current[queue.current.length - 1] : currentKey.current;
+    if (qs === target) return;
+    queue.current.push(qs);
     startTransition(() => {
       router.replace(qs ? `/noticias?${qs}` : "/noticias", { scroll: false });
     });

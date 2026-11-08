@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { savePostAction } from "@/app/admin/(painel)/actions";
 import { MODALITIES, ORIGIN_LABEL, type Modality, type Origin } from "@/config/taxonomy";
 import { Field } from "./Field";
@@ -82,6 +82,20 @@ type Props = {
   justCreated?: boolean;
 };
 
+/** Tipos de input em que Enter dispararia o envio implícito do formulário. */
+const SINGLE_LINE = new Set(["text", "url", "search", "email", "tel", "number", "password", "date", "datetime-local", "time", "month", "week"]);
+
+/**
+ * Matéria nova: Enter no meio da digitação não pode criar a matéria e trocar de página.
+ * Só os botões criam. (Textareas seguem com Enter = nova linha.)
+ */
+function blockImplicitSubmit(event: KeyboardEvent<HTMLFormElement>) {
+  const target = event.target;
+  if (event.key === "Enter" && target instanceof HTMLInputElement && SINGLE_LINE.has(target.type)) {
+    event.preventDefault();
+  }
+}
+
 export function PostForm({ initial, categories, publicUrl, justCreated }: Props) {
   const { state, pending, ready, onSubmit } = useAdminForm(savePostAction);
   const [origin, setOrigin] = useState<Origin>(initial.origin);
@@ -90,7 +104,15 @@ export function PostForm({ initial, categories, publicUrl, justCreated }: Props)
   const editing = !!initial.id;
 
   return (
-    <form method="post" onSubmit={onSubmit} noValidate data-ready={ready ? "true" : undefined} className="space-y-6" aria-label="Matéria">
+    <form
+      method="post"
+      onSubmit={onSubmit}
+      onKeyDown={editing ? undefined : blockImplicitSubmit}
+      noValidate
+      data-ready={ready ? "true" : undefined}
+      className="space-y-6"
+      aria-label="Matéria"
+    >
       {initial.id && <input type="hidden" name="id" value={initial.id} />}
       <FormMessages state={state} labels={LABELS} saved={justCreated ? "Matéria criada." : undefined} />
 
@@ -235,17 +257,20 @@ export function PostForm({ initial, categories, publicUrl, justCreated }: Props)
       </fieldset>
 
       <div className="flex flex-wrap items-center gap-3">
+        {/* Enter num campo de uma linha envia pelo PRIMEIRO botão de envio do formulário.
+            Na edição ele precisa ser "Salvar alterações" (mantém o status): se fosse
+            "Salvar rascunho", um Enter no título tiraria do ar uma matéria publicada. */}
+        {editing && (
+          <button type="submit" name="intent" value="keep" disabled={pending || !ready} className={BTN_SECONDARY}>
+            Salvar alterações
+          </button>
+        )}
         <button type="submit" name="intent" value="draft" disabled={pending || !ready} className={BTN_SECONDARY}>
           Salvar rascunho
         </button>
         <button type="submit" name="intent" value="publish" disabled={pending || !ready} className={BTN_PRIMARY}>
           Publicar
         </button>
-        {editing && (
-          <button type="submit" name="intent" value="keep" disabled={pending || !ready} className={BTN_SECONDARY}>
-            Salvar alterações
-          </button>
-        )}
         {publicUrl ? (
           <a href={publicUrl} target="_blank" rel="noopener noreferrer" className={BTN_SECONDARY}>
             Ver no site<span className="sr-only"> (abre em nova aba)</span>

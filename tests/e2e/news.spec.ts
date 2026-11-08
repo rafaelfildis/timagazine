@@ -67,6 +67,20 @@ test("limpar filtros leva de volta a /noticias", async ({ page }) => {
   await expect(page.getByLabel("Categoria")).toHaveValue("");
 });
 
+test("Enter sem mudança, busca e 'Limpar filtros': os campos voltam ao vazio e q não é reaplicado", async ({ page }) => {
+  await open(page, "/noticias");
+  const busca = page.locator('form[aria-label="Filtros"]').getByLabel("Buscar");
+  await busca.press("Enter");
+  await busca.fill("ia");
+  await expect(page).toHaveURL(/[?&]q=ia(&|$)/);
+  await page.getByRole("link", { name: "Limpar filtros", exact: true }).click();
+  await expect(page).toHaveURL(/\/noticias$/);
+  await expect(busca).toHaveValue("");
+  await expect(page.getByLabel("Ordenar por")).toHaveValue("recentes");
+  await page.getByLabel("Categoria").selectOption("ciberseguranca");
+  await expect(page).toHaveURL(/\/noticias\?categoria=ciberseguranca$/);
+});
+
 test("mudar um filtro volta para a primeira página", async ({ page }) => {
   await open(page, "/noticias?pagina=2");
   await page.getByLabel("Modalidade").selectOption("noticia");

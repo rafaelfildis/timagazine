@@ -34,6 +34,9 @@ async function abrirEdicao(page: Page) {
 
 let slug = "";
 
+/** HTML de uma rota (com a sessão do teste), para conferir o que foi salvo. */
+const textoDe = async (page: Page, url: string) => (await page.request.get(url)).text();
+
 test.describe.configure({ mode: "serial" });
 
 test("cria uma matéria com imagem, extras e publica: aparece na Home, em /noticias e na matéria", async ({ page }) => {
@@ -211,16 +214,21 @@ test("destaques da Home: escolhe uma matéria publicada na posição 1 e depois 
 test("'Salvar alterações' mantém o status real, sem recarregar a página", async ({ page }) => {
   await entrar(page);
   await abrirEdicao(page);
+  const edicao = new URL(page.url()).pathname;
   const msg = (t: string) => page.getByRole("main").getByRole("status").filter({ hasText: t });
   const status = page.getByTestId("status-atual");
+  const linhaFina = page.getByRole("textbox", { name: /^Linha fina/ });
   await expect(status).toHaveText("Rascunho");
 
   // rascunho -> Publicar -> (sem recarregar) editar -> Salvar alterações: continua publicada
   await page.getByRole("button", { name: "Publicar" }).click();
   await expect(msg("Matéria salva e publicada.")).toBeVisible();
   await expect(status).toHaveText("Publicada");
-  await page.getByRole("textbox", { name: /^Linha fina/ }).fill("Linha fina editada depois de publicar.");
+  const dekPublicada = `Linha fina editada depois de publicar ${STAMP}.`;
+  await linhaFina.fill(dekPublicada);
   await page.getByRole("button", { name: "Salvar alterações" }).click();
+  // A mensagem é a mesma do envio anterior: espera o salvamento de fato (texto novo no site).
+  await expect.poll(() => textoDe(page, `/noticias/${slug}`)).toContain(dekPublicada);
   await expect(status).toHaveText("Publicada");
   expect((await page.request.get(`/noticias/${slug}`)).status()).toBe(200);
 
@@ -228,10 +236,32 @@ test("'Salvar alterações' mantém o status real, sem recarregar a página", as
   await page.getByRole("button", { name: "Salvar rascunho" }).click();
   await expect(msg("Rascunho salvo.")).toBeVisible();
   await expect(status).toHaveText("Rascunho");
-  await page.getByRole("textbox", { name: /^Linha fina/ }).fill("Linha fina editada em rascunho.");
+  const dekRascunho = `Linha fina editada em rascunho ${STAMP}.`;
+  await linhaFina.fill(dekRascunho);
   await page.getByRole("button", { name: "Salvar alterações" }).click();
+  await expect.poll(() => textoDe(page, edicao)).toContain(dekRascunho);
   await expect(status).toHaveText("Rascunho");
   expect((await page.request.get(`/noticias/${slug}`)).status()).toBe(404);
+});
+
+test("Enter no título de uma matéria publicada salva sem tirá-la do ar", async ({ page }) => {
+  await entrar(page);
+  await abrirEdicao(page);
+  const msg = (t: string) => page.getByRole("main").getByRole("status").filter({ hasText: t });
+  await page.getByRole("button", { name: "Publicar" }).click();
+  await expect(msg("Matéria salva e publicada.")).toBeVisible();
+
+  const dek = `Linha fina salva com Enter ${STAMP}.`;
+  await page.getByRole("textbox", { name: /^Linha fina/ }).fill(dek);
+  await page.getByRole("textbox", { name: /^Título/ }).press("Enter");
+  // O envio implícito usa "Salvar alterações": o texto novo chega ao site e a matéria continua no ar.
+  await expect.poll(() => textoDe(page, `/noticias/${slug}`)).toContain(dek);
+  expect((await page.request.get(`/noticias/${slug}`)).status()).toBe(200);
+  await expect(page.getByTestId("status-atual")).toHaveText("Publicada");
+
+  // Volta para rascunho, como os outros specs esperam.
+  await page.getByRole("button", { name: "Salvar rascunho" }).click();
+  await expect(msg("Rascunho salvo.")).toBeVisible();
 });
 
 test("WhatsApp: URL inválida é recusada; a válida mostra o botão no cabeçalho; vazia remove", async ({ page }) => {
