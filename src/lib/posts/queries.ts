@@ -29,6 +29,8 @@ export type PostFull = PostCard & {
   updatedAt: Date;
   sourceName: string | null;
   sourceUrl: string | null;
+  takeaways: string | null;
+  correctionNote: string | null;
   tags: { slug: string; name: string }[];
 };
 
@@ -138,6 +140,8 @@ export async function getPostBySlug(db: Db, slug: string): Promise<PostFull | nu
       updatedAt: posts.updatedAt,
       sourceName: posts.sourceName,
       sourceUrl: posts.sourceUrl,
+      takeaways: posts.takeaways,
+      correctionNote: posts.correctionNote,
       authorName: users.name,
     })
     .from(posts)

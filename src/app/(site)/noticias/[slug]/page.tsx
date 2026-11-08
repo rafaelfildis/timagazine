@@ -3,10 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { CorrectionNote } from "@/components/posts/CorrectionNote";
 import { PostBadges } from "@/components/posts/PostBadges";
 import { PostCard } from "@/components/posts/PostCard";
 import { ShareButtons } from "@/components/posts/ShareButtons";
 import { SourceCredit } from "@/components/posts/SourceCredit";
+import { Takeaways } from "@/components/posts/Takeaways";
 import { ViewPing } from "@/components/posts/ViewPing";
 import { WhatsAppCta } from "@/components/site/WhatsAppCta";
 import { siteConfig } from "@/config/site";
@@ -142,8 +144,10 @@ export default async function ArticlePage({ params }: Props) {
         </figure>
       )}
 
-      <div className="mt-8">
+      <div className="mt-8 space-y-6">
+        <CorrectionNote note={post.correctionNote} updatedAt={post.updatedAt} />
         <Markdown source={post.body} />
+        <Takeaways source={post.takeaways} />
       </div>
 
       {post.origin === "curadoria" && post.sourceName && (

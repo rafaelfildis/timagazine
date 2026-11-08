@@ -80,6 +80,10 @@ export const posts = pgTable(
     imageUrl: text("image_url"),
     imageAlt: text("image_alt"),
     imageAi: boolean("image_ai").notNull().default(false),
+    /** Caixa opcional "O que fazer agora" (markdown). */
+    takeaways: text("takeaways"),
+    /** Nota de correção exibida no topo do corpo da matéria. */
+    correctionNote: text("correction_note"),
     /** null = "Redação TI MAGAZINE". */
     authorId: uuid("author_id").references(() => users.id, { onDelete: "set null" }),
     status: statusEnum("status").notNull().default("draft"),
