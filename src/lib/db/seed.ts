@@ -1,15 +1,7 @@
 import { eq } from "drizzle-orm";
 import { CATEGORIES, MODALITIES } from "@/config/taxonomy";
 import type { Db } from "./client";
-import {
-  categories,
-  homeHighlights,
-  pages,
-  postTags,
-  posts,
-  settings,
-  tags,
-} from "./schema";
+import { categories, homeHighlights, postTags, posts, tags } from "./schema";
 
 /** Data-base fixa: os dados de exemplo são determinísticos (sem aleatoriedade). */
 export const SEED_BASE_DATE = new Date("2026-11-01T12:00:00-03:00");
@@ -39,29 +31,6 @@ const TOPICS = [
   "Redes privadas 5G chegam à indústria",
 ];
 
-const PAGES = [
-  {
-    slug: "sobre" as const,
-    title: "Sobre a TI MAGAZINE",
-    body: "A TI MAGAZINE é um portal de notícias sobre tecnologia, inovação e negócios, voltado a quem lidera a transformação nas organizações.\n\nPublicamos reportagens, análises, entrevistas e conteúdos de curadoria, sempre identificando a origem de cada matéria.\n\nTexto inicial: a equipe editorial deve revisar e complementar esta página.",
-  },
-  {
-    slug: "politica-de-privacidade" as const,
-    title: "Política de Privacidade",
-    body: "Esta política explica como a TI MAGAZINE trata dados pessoais, em conformidade com a Lei Geral de Proteção de Dados (LGPD).\n\n## Dados que coletamos\n\nColetamos apenas os dados que você nos envia, como nome, e-mail e mensagem no formulário de contato. O portal não usa cookies de rastreamento; o único cookie é o de sessão do painel administrativo, essencial ao funcionamento.\n\n## Seus direitos\n\nVocê pode solicitar acesso, correção ou exclusão dos seus dados pelo formulário de contato.\n\nTexto inicial: revisar com o responsável jurídico antes da publicação definitiva.",
-  },
-  {
-    slug: "termos-de-uso" as const,
-    title: "Termos de Uso",
-    body: "Ao acessar o portal TI MAGAZINE você concorda com estes termos.\n\n## Uso do conteúdo\n\nO conteúdo publicado é protegido por direitos autorais. A reprodução parcial é permitida com citação da fonte e link para a matéria original.\n\n## Responsabilidade\n\nEmpenhamo-nos em manter as informações corretas e atualizadas, mas não garantimos que estejam isentas de erros.\n\nTexto inicial: revisar com o responsável jurídico antes da publicação definitiva.",
-  },
-  {
-    slug: "politica-editorial" as const,
-    title: "Política Editorial e de Correções",
-    body: 'Esta política explica como o conteúdo da TI MAGAZINE é produzido, revisado e corrigido.\n\n## Coleta em fontes\n\nAs matérias partem de fontes identificáveis: comunicados oficiais, documentos públicos, estudos, entrevistas e publicações de veículos e instituições. Cada matéria informa se é apuração própria ou curadoria. Nas curadorias, o crédito da fonte aparece no fim do texto ("Com informações de ..."), com link para o original.\n\n## Uso de inteligência artificial\n\nUsamos inteligência artificial como ferramenta de apoio na redação dos textos e na criação de imagens. Ilustrações geradas por IA recebem a legenda "Ilustração gerada por IA". A IA não publica nada sozinha.\n\n## Aprovação humana obrigatória\n\nToda matéria é revisada e aprovada por uma pessoa da equipe editorial antes de ser publicada. A responsabilidade pelo conteúdo é sempre humana.\n\n## Conteúdo patrocinado e opinião\n\nConteúdo patrocinado é sempre identificado como tal. Artigos de opinião refletem a visão de quem assina.\n\n## Como pedir uma correção\n\nViu um erro? Fale com a redação pela página de [Contato](/contato), escolhendo o assunto "Correção" e indicando a matéria e o trecho. Correções relevantes são registradas na própria matéria.\n\nTexto inicial: a equipe editorial deve revisar e complementar esta página.',
-  },
-];
-
 function slugify(text: string) {
   return text
     .normalize("NFD")
@@ -83,9 +52,12 @@ function bodyFor(title: string, i: number) {
 }
 
 /**
- * Cria categorias, tags, páginas institucionais, a chave `whatsapp_channel_url` (vazia)
- * e `posts` matérias publicadas, de forma determinística (dados fixos; o post i é
- * publicado i*6h antes de SEED_BASE_DATE).
+ * Dados de EXEMPLO (dev/testes): tags e `posts` matérias publicadas, de forma determinística
+ * (dados fixos; o post i é publicado i*6h antes de SEED_BASE_DATE).
+ *
+ * Categorias, páginas institucionais e a chave `whatsapp_channel_url` NÃO são criadas aqui:
+ * vêm da migração `drizzle/0002_bootstrap_data.sql` (as mesmas em dev, e2e e produção), por
+ * isso o banco precisa estar migrado antes.
  *
  * Cobertura (índice i começa em 0; presente quando `posts` > i):
  * categoria = i % 12 e modalidade = i % 9; i=3 é opinião; i=4 é patrocinado; i=5 não tem
@@ -94,20 +66,14 @@ function bodyFor(title: string, i: number) {
  * Pode ser executado de novo sem duplicar (usa `onConflictDoNothing`).
  */
 export async function seed(db: Db, opts: { posts: number }) {
-  await db
-    .insert(categories)
-    .values(CATEGORIES.map((c, position) => ({ slug: c.slug, name: c.name, position })))
-    .onConflictDoNothing();
+  const cats = await db.select().from(categories);
+  if (cats.length < CATEGORIES.length) {
+    throw new Error("Categorias ausentes: rode as migrações (npm run db:migrate) antes do seed.");
+  }
   await db.insert(tags).values(TAGS).onConflictDoNothing();
-  await db.insert(pages).values(PAGES).onConflictDoNothing();
-  await db
-    .insert(settings)
-    .values({ key: "whatsapp_channel_url", value: "" })
-    .onConflictDoNothing();
 
   if (opts.posts <= 0) return;
 
-  const cats = await db.select().from(categories);
   const tagRows = await db.select().from(tags);
   const catId = (slug: string) => cats.find((c) => c.slug === slug)!.id;
 

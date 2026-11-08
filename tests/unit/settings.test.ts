@@ -11,7 +11,7 @@ afterEach(() => vi.restoreAllMocks());
 describe("readSetting", () => {
   it("devolve o valor, ou null quando vazio", async () => {
     const { db, close } = await createTestDb();
-    await db.insert(settings).values({ key: "whatsapp_channel_url", value: "" });
+    // A chave já vem vazia da migração 0002_bootstrap_data.
     expect(await readSetting(db, "whatsapp_channel_url")).toBeNull();
     await db.update(settings).set({ value: " https://wa.me/x " }).where(eq(settings.key, "whatsapp_channel_url"));
     expect(await readSetting(db, "whatsapp_channel_url")).toBe("https://wa.me/x");

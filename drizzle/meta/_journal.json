@@ -15,6 +15,13 @@
       "when": 1794096816794,
       "tag": "0001_post_takeaways_correction",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794100010416,
+      "tag": "0002_bootstrap_data",
+      "breakpoints": true
     }
   ]
 }

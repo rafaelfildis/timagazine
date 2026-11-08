@@ -11,14 +11,10 @@ import {
   hashPassword,
   normalizeEmail,
 } from "../src/lib/auth/core";
+import { describeDatabaseUrl, loadEnvFiles } from "./lib/env";
 
-for (const file of [".env", ".env.local"]) {
-  try {
-    process.loadEnvFile(file);
-  } catch {
-    // arquivo ausente: segue com o ambiente do processo
-  }
-}
+// .env.local vence .env (mesma ordem do Next.js); o ambiente do processo vence os dois.
+loadEnvFiles();
 
 function fail(message: string): never {
   console.error(message);
@@ -94,6 +90,8 @@ if (!values["reset-password"] && !name) fail("Informe --name.");
 
 const url = process.env.DATABASE_URL;
 if (!url) fail("DATABASE_URL não definida.");
+// Antes de pedir a senha: quem roda confere em qual banco o admin será criado.
+console.log(`Banco de destino: ${describeDatabaseUrl(url)}`);
 const db = createDb(url);
 
 const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
