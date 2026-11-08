@@ -66,6 +66,26 @@ describe("autenticação", () => {
     expect(result).toEqual({ ok: false, reason: "locked" });
   });
 
+  it("bloqueado, novas tentativas não são registradas e o bloqueio não desliza", async () => {
+    await db.delete(loginAttempts);
+    const quaseVencidas = new Date(Date.now() - 14 * 60_000);
+    for (let i = 0; i < LOGIN_MAX_ATTEMPTS; i++) {
+      await db.insert(loginAttempts).values({ email: "ana@exemplo.com", attemptedAt: quaseVencidas });
+    }
+    // Atacante insistente: 20 tentativas (inclusive com a senha certa), todas recusadas sem registro.
+    for (let i = 0; i < 20; i++) {
+      expect(await checkCredentials(db, "ana@exemplo.com", i % 2 ? PASSWORD : "errada")).toEqual({
+        ok: false,
+        reason: "locked",
+      });
+    }
+    expect(await db.select().from(loginAttempts)).toHaveLength(LOGIN_MAX_ATTEMPTS);
+    // As falhas registradas vencem (15 min depois delas): o bloqueio acaba, apesar das 20 tentativas recentes.
+    await db.update(loginAttempts).set({ attemptedAt: new Date(Date.now() - 16 * 60_000) });
+    expect(await verifyCredentials(db, "ana@exemplo.com", PASSWORD)).not.toBeNull();
+    await db.delete(loginAttempts);
+  });
+
   it("o bloqueio vale por e-mail e não afeta outro e-mail", async () => {
     await createUser(db, { email: "bia@exemplo.com", name: "Bia", password: PASSWORD, role: "admin" });
     expect(await verifyCredentials(db, "bia@exemplo.com", PASSWORD)).not.toBeNull();

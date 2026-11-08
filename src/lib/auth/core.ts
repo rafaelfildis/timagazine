@@ -57,7 +57,8 @@ export type CredentialsResult =
 
 /**
  * Confere e-mail e senha aplicando o limite de tentativas (5 falhas por e-mail em 15 min).
- * Toda tentativa é registrada antes da conferência (e apagada no sucesso); acima do limite a senha nem é conferida.
+ * Toda tentativa dentro do limite é registrada antes da conferência (e apagada no sucesso);
+ * acima do limite a senha nem é conferida e nada mais é registrado.
  */
 export async function checkCredentials(
   db: Db,
@@ -79,14 +80,21 @@ export async function checkCredentials(
   await db
     .delete(loginAttempts)
     .where(and(eq(loginAttempts.email, normalized), lt(loginAttempts.attemptedAt, since)));
+  const countAttempts = async () =>
+    (
+      await db
+        .select({ attempts: sql<number>`count(*)::int` })
+        .from(loginAttempts)
+        .where(and(eq(loginAttempts.email, normalized), gte(loginAttempts.attemptedAt, since)))
+    )[0].attempts;
+  // Limite já atingido: recusa SEM registrar. Um atacante insistente não faz a tabela crescer
+  // nem empurra o fim do bloqueio: ele termina 15 min depois das falhas registradas (no
+  // máximo LOGIN_MAX_ATTEMPTS em uso sequencial), e não 15 min depois da última tentativa.
+  if ((await countAttempts()) >= LOGIN_MAX_ATTEMPTS) return { ok: false, reason: "locked" };
   // Registra a tentativa ANTES de conferir a senha e conta incluindo-a: requisições
   // paralelas não escapam do limite enquanto o argon2 roda. Sucesso apaga as tentativas.
   await db.insert(loginAttempts).values({ email: normalized });
-  const [{ attempts }] = await db
-    .select({ attempts: sql<number>`count(*)::int` })
-    .from(loginAttempts)
-    .where(and(eq(loginAttempts.email, normalized), gte(loginAttempts.attemptedAt, since)));
-  if (attempts > LOGIN_MAX_ATTEMPTS) return { ok: false, reason: "locked" };
+  if ((await countAttempts()) > LOGIN_MAX_ATTEMPTS) return { ok: false, reason: "locked" };
 
   const [user] = await db.select().from(users).where(eq(users.email, normalized)).limit(1);
   const valid = await verify(user?.passwordHash ?? (await getDummyHash()), password).catch(
