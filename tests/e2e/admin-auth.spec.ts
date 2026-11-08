@@ -92,16 +92,31 @@ test.describe("com o usuário de teste", () => {
     expect(sessao?.httpOnly).toBe(true);
     expect(sessao?.sameSite).toBe("Lax");
 
-    // Um clique dado antes da hidratação pode se perder; repete até a saída acontecer.
-    await expect(async () => {
-      await page.getByRole("button", { name: "Sair" }).click({ timeout: 1500 });
-      await expect(page).toHaveURL(/\/admin\/login$/, { timeout: 3000 });
-    }).toPass({ timeout: 20_000 });
+    await page.getByRole("button", { name: "Sair" }).click();
+    await expect(page).toHaveURL(/\/admin\/login$/);
     await expect
       .poll(async () => (await context.cookies()).some((c) => c.name.includes("session-token")))
       .toBe(false);
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/admin\/login$/);
+  });
+
+  test("requisições ao painel não reemitem o cookie de sessão (senão um prefetch tardio desfaz o logout)", async ({
+    page,
+  }) => {
+    await page.goto("/admin/login");
+    await entrar(page, EMAIL!, PASSWORD!);
+    await expect(page).toHaveURL(/\/admin$/);
+    for (const [path, headers] of [
+      ["/admin/materias", {}],
+      ["/admin/materias", { rsc: "1", "next-router-prefetch": "1" }],
+      ["/admin", { rsc: "1" }],
+    ] as const) {
+      const res = await page.request.get(path, { headers });
+      expect(res.status(), path).toBe(200);
+      const setCookies = res.headersArray().filter((h) => h.name.toLowerCase() === "set-cookie");
+      expect(setCookies.filter((h) => h.value.includes("session-token")), path).toEqual([]);
+    }
   });
 
   test("callbackUrl relativo é respeitado; URL externa é ignorada", async ({ page, baseURL }) => {
