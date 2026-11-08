@@ -208,6 +208,32 @@ test("destaques da Home: escolhe uma matéria publicada na posição 1 e depois 
   await expect(page.getByRole("main").getByRole("status").filter({ hasText: "Rascunho salvo." })).toBeVisible();
 });
 
+test("'Salvar alterações' mantém o status real, sem recarregar a página", async ({ page }) => {
+  await entrar(page);
+  await abrirEdicao(page);
+  const msg = (t: string) => page.getByRole("main").getByRole("status").filter({ hasText: t });
+  const status = page.getByTestId("status-atual");
+  await expect(status).toHaveText("Rascunho");
+
+  // rascunho -> Publicar -> (sem recarregar) editar -> Salvar alterações: continua publicada
+  await page.getByRole("button", { name: "Publicar" }).click();
+  await expect(msg("Matéria salva e publicada.")).toBeVisible();
+  await expect(status).toHaveText("Publicada");
+  await page.getByRole("textbox", { name: /^Linha fina/ }).fill("Linha fina editada depois de publicar.");
+  await page.getByRole("button", { name: "Salvar alterações" }).click();
+  await expect(status).toHaveText("Publicada");
+  expect((await page.request.get(`/noticias/${slug}`)).status()).toBe(200);
+
+  // publicada -> Salvar rascunho -> editar -> Salvar alterações: continua rascunho
+  await page.getByRole("button", { name: "Salvar rascunho" }).click();
+  await expect(msg("Rascunho salvo.")).toBeVisible();
+  await expect(status).toHaveText("Rascunho");
+  await page.getByRole("textbox", { name: /^Linha fina/ }).fill("Linha fina editada em rascunho.");
+  await page.getByRole("button", { name: "Salvar alterações" }).click();
+  await expect(status).toHaveText("Rascunho");
+  expect((await page.request.get(`/noticias/${slug}`)).status()).toBe(404);
+});
+
 test("WhatsApp: URL inválida é recusada; a válida mostra o botão no cabeçalho; vazia remove", async ({ page }) => {
   await entrar(page);
   await page.goto("/admin/configuracoes");

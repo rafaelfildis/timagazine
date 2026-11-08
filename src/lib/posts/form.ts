@@ -9,9 +9,20 @@ const checked = (f: FormData, name: string) => f.get(name) === "on";
 
 /**
  * FormData do PostForm → entrada do `savePost`. Os botões mandam `intent`:
- * "draft" e "publish" forçam o status; "keep" (ou ausente) usa o campo `status`.
+ * "draft" e "publish" forçam o status; "keep" (ou ausente) NÃO muda o status: o campo
+ * `status` do formulário é ignorado e a action usa o status gravado (ver `resolveStatus`).
  * Erros que só existem na conversão (data ilegível) voltam em `errors`.
  */
+/** Status final: os botões decidem; "keep" preserva o status gravado (rascunho se a matéria é nova). */
+export function resolveStatus(
+  intent: string,
+  stored: "draft" | "published" | undefined,
+): "draft" | "published" {
+  if (intent === "publish") return "published";
+  if (intent === "draft") return "draft";
+  return stored ?? "draft";
+}
+
 export function postFormToInput(f: FormData): {
   input: PostInputData;
   errors: Record<string, string>;
@@ -19,8 +30,8 @@ export function postFormToInput(f: FormData): {
   const errors: Record<string, string> = {};
 
   const intent = text(f, "intent");
-  const status =
-    intent === "publish" ? "published" : intent === "draft" ? "draft" : text(f, "status");
+  // "keep" precisa do status gravado: a action completa isso (aqui fica só o que o botão decide).
+  const status = intent === "publish" ? "published" : intent === "draft" ? "draft" : "keep";
 
   const rawDate = text(f, "publishedAt").trim();
   const publishedAt = bahiaInputToDate(rawDate);

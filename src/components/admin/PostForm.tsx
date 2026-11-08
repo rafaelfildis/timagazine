@@ -85,6 +85,7 @@ type Props = {
 export function PostForm({ initial, categories, publicUrl, justCreated }: Props) {
   const { state, pending, ready, onSubmit } = useAdminForm(savePostAction);
   const [origin, setOrigin] = useState<Origin>(initial.origin);
+  const status = state?.status ?? initial.status;
   const errors = state?.errors ?? {};
   const editing = !!initial.id;
 
@@ -104,7 +105,7 @@ export function PostForm({ initial, categories, publicUrl, justCreated }: Props)
         <Field
           id="f-slug"
           label="Endereço (slug)"
-          hint="Deixe em branco para gerar a partir do título. Se já existir, o sistema acrescenta -2, -3…"
+          hint={editing ? "Em branco mantém o endereço atual. Se o novo já existir, o sistema acrescenta -2, -3…" : "Em branco gera a partir do título. Se já existir, o sistema acrescenta -2, -3…"}
           error={errors.slug}
         >
           {(p) => <input {...p} name="slug" type="text" maxLength={120} defaultValue={initial.slug} />}
@@ -215,18 +216,17 @@ export function PostForm({ initial, categories, publicUrl, justCreated }: Props)
       <fieldset className={FIELDSET}>
         <legend className={LEGEND}>Publicação</legend>
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field id="f-status" label="Status" error={errors.status}>
-            {(p) => (
-              <select {...p} name="status" defaultValue={initial.status}>
-                <option value="draft">Rascunho</option>
-                <option value="published">Publicada</option>
-              </select>
-            )}
-          </Field>
+          <div>
+            <p className="block text-sm font-medium text-text">Status atual</p>
+            <p data-testid="status-atual" className="mt-1.5 flex min-h-11 items-center text-base">
+              {status === "published" ? "Publicada" : "Rascunho"}
+            </p>
+            <p className="mt-0.5 text-sm text-muted">Use os botões abaixo para mudar: Salvar rascunho, Publicar ou Salvar alterações (mantém o status).</p>
+          </div>
           <Field
             id="f-publishedAt"
             label="Data de publicação"
-            hint="Horário da Bahia. Uma data futura agenda a publicação; em branco publica agora."
+            hint="Horário da Bahia. Uma data futura agenda a publicação. Em branco: publica agora, ou mantém a data já definida."
             error={errors.publishedAt}
           >
             {(p) => <input {...p} name="publishedAt" type="datetime-local" defaultValue={initial.publishedAt} />}

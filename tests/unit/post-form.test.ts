@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { postFormToInput } from "@/lib/posts/form";
+import { postFormToInput, resolveStatus } from "@/lib/posts/form";
 
 const fd = (entries: Record<string, string>) => {
   const f = new FormData();
@@ -21,7 +21,7 @@ describe("postFormToInput", () => {
       sponsored: true,
       imageAi: false, // sem imagem, "gerada por IA" não vale (o servidor também zera)
       tagNames: ["IA", "Nuvem", "LGPD", "Segurança"],
-      status: "draft",
+      status: "keep",
       id: undefined,
     });
   });
@@ -30,10 +30,20 @@ describe("postFormToInput", () => {
     expect(postFormToInput(fd(BASE)).input).toMatchObject({ sponsored: false, imageAi: false });
   });
 
-  it("intent 'publish' e 'draft' sobrescrevem o status; 'keep' usa o campo status", () => {
+  it("intent publish e draft forçam o status; keep ignora o campo status enviado", () => {
     expect(postFormToInput(fd({ ...BASE, status: "draft", intent: "publish" })).input.status).toBe("published");
     expect(postFormToInput(fd({ ...BASE, status: "published", intent: "draft" })).input.status).toBe("draft");
-    expect(postFormToInput(fd({ ...BASE, status: "published", intent: "keep" })).input.status).toBe("published");
+    // keep nunca usa o status do formulário (a action preenche com o gravado)
+    expect(postFormToInput(fd({ ...BASE, status: "published", intent: "keep" })).input.status).toBe("keep");
+    expect(postFormToInput(fd({ ...BASE, status: "draft" })).input.status).toBe("keep");
+  });
+
+  it("resolveStatus: keep preserva o status gravado e nunca o inverte", () => {
+    expect(resolveStatus("keep", "published")).toBe("published");
+    expect(resolveStatus("keep", "draft")).toBe("draft");
+    expect(resolveStatus("keep", undefined)).toBe("draft");
+    expect(resolveStatus("publish", "draft")).toBe("published");
+    expect(resolveStatus("draft", "published")).toBe("draft");
   });
 
   it("publishedAt vem do datetime-local no fuso da Bahia", () => {

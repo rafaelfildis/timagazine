@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { searchPublishedPosts } from "@/lib/admin/lists";
 import { db } from "@/lib/db/client";
-import { postFormToInput } from "@/lib/posts/form";
+import { eq } from "drizzle-orm";
+import { posts } from "@/lib/db/schema";
+import { postFormToInput, resolveStatus } from "@/lib/posts/form";
 import {
   HIGHLIGHT_POSITIONS,
   ValidationError,
@@ -24,6 +26,8 @@ import {
 
 export type FormState = {
   ok?: boolean;
+  /** Status da matéria depois de salvar (para o formulário refletir o real). */
+  status?: "draft" | "published";
   message?: string;
   errors?: Record<string, string>;
 } | null;
@@ -41,6 +45,13 @@ export async function savePostAction(_prev: FormState, formData: FormData): Prom
   const { input, errors } = postFormToInput(formData);
   if (Object.keys(errors).length) return { errors };
 
+  if ((input.status as string) === "keep") {
+    const [row] = input.id
+      ? await db.select({ status: posts.status }).from(posts).where(eq(posts.id, input.id)).limit(1)
+      : [];
+    input.status = resolveStatus("keep", row?.status);
+  }
+
   let saved: { id: string; slug: string };
   try {
     saved = await savePost(db, input, user.id);
@@ -51,6 +62,7 @@ export async function savePostAction(_prev: FormState, formData: FormData): Prom
   if (!input.id) redirect(`/admin/materias/${saved.id}?salvo=1`);
   return {
     ok: true,
+    status: input.status,
     message: input.status === "published" ? "Matéria salva e publicada." : "Rascunho salvo.",
   };
 }
