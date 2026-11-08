@@ -23,6 +23,10 @@ Next.js (App Router) + Tailwind v4 + TypeScript. Copie `.env.example` para `.env
 
 Na primeira vez: `npx playwright install chromium`.
 
+## Painel (/admin)
+
+Regra de segurança: **toda página do painel e toda server action chama `requireRole(...)`** (de `src/lib/auth.ts`). O layout e o `proxy.ts` não bastam: o layout não reexecuta em navegações parciais e o proxy só confere o cookie.
+
 ## Pendências
 
 - Logo final em SVG/PNG transparente pendente: `public/brand/logo-horizontal.jpg` é provisório (JPG sobre fundo preto) e `simbolo-ti.png` foi recortado dele.

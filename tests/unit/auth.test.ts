@@ -89,6 +89,20 @@ describe("autenticação", () => {
     expect(left).toHaveLength(0);
   });
 
+  it("requisições paralelas não escapam do limite (tentativa registrada antes do argon2)", async () => {
+    await db.delete(loginAttempts);
+    const results = await Promise.all(
+      Array.from({ length: 10 }, () => verifyCredentials(db, "ana@exemplo.com", "errada")),
+    );
+    expect(results.every((r) => r === null)).toBe(true);
+    expect(await db.select().from(loginAttempts)).toHaveLength(10);
+    expect(await checkCredentials(db, "ana@exemplo.com", PASSWORD)).toEqual({
+      ok: false,
+      reason: "locked",
+    });
+    await db.delete(loginAttempts);
+  });
+
   it("hasRole: admin inclui editor, editor não inclui admin", () => {
     expect(hasRole("editor", "admin")).toBe(false);
     expect(hasRole("admin", "editor")).toBe(true);
@@ -113,6 +127,13 @@ describe("safeCallbackUrl", () => {
     null,
     undefined,
     "/admin\n//evil.com",
+    "/..//evil.com",
+    "/.//evil.com",
+    "/admin/..//evil.com",
+    "/%2e%2e//evil.com",
+    "/%2e//evil.com",
+    "/noticias",
+    "/administrador",
   ])("rejeita %j", (value) => {
     expect(safeCallbackUrl(value as string | null | undefined)).toBe("/admin");
   });

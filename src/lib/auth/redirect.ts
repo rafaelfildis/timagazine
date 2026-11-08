@@ -1,8 +1,9 @@
 const DEFAULT_REDIRECT = "/admin";
 
 /**
- * Valida o `callbackUrl` do login: só caminho relativo do mesmo site.
- * Qualquer outra coisa (URL absoluta, `//host`, `/\host`, esquemas, controle) volta para /admin.
+ * Valida o `callbackUrl` do login: só caminho do próprio painel (/admin ou /admin/...).
+ * Valida o resultado NORMALIZADO (segmentos `.`/`..` e `%2e` já resolvidos), porque
+ * `/..//evil.com` vira `//evil.com`. Qualquer outra coisa volta para /admin.
  */
 export function safeCallbackUrl(value: string | null | undefined): string {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return DEFAULT_REDIRECT;
@@ -11,8 +12,12 @@ export function safeCallbackUrl(value: string | null | undefined): string {
   try {
     const base = "http://localhost.invalid";
     const url = new URL(value, base);
-    if (url.origin !== base) return DEFAULT_REDIRECT;
-    return url.pathname + url.search + url.hash;
+    const { pathname } = url;
+    if (url.origin !== base || pathname.startsWith("//") || pathname.includes("\\")) {
+      return DEFAULT_REDIRECT;
+    }
+    if (pathname !== "/admin" && !pathname.startsWith("/admin/")) return DEFAULT_REDIRECT;
+    return pathname + url.search + url.hash;
   } catch {
     return DEFAULT_REDIRECT;
   }

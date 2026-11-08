@@ -14,6 +14,7 @@ const MENU = [
 export const dynamic = "force-dynamic";
 
 export default async function PainelLayout({ children }: { children: React.ReactNode }) {
+  // O layout não reexecuta em navegação parcial: cada página e server action também chama requireRole.
   const { user } = await requireRole("editor");
 
   async function logout() {

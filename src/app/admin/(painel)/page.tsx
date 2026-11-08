@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { getAdminOverview } from "@/lib/admin/overview";
+import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 
 export const metadata: Metadata = { title: "Visão geral" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
+  // Regra do painel: toda página e toda server action chama requireRole (o layout não
+  // roda de novo em navegações parciais).
+  await requireRole("editor");
   const o = await getAdminOverview(db);
   const cards = [
     { label: "Publicadas", value: o.published },

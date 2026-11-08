@@ -24,6 +24,27 @@ test("subpáginas do painel sem login também redirecionam, guardando o destino"
   await expect(page).toHaveURL(/\/admin\/login\?callbackUrl=%2Fadmin%2Fmaterias$/);
 });
 
+test("6 tentativas erradas no mesmo e-mail mostram a mensagem de bloqueio", async ({ page }) => {
+  await page.goto("/admin/login");
+  const alerta = page.getByRole("main").getByRole("alert");
+  const email = `bloqueado-${Date.now()}@ti-magazine.test`; // único: retries não herdam bloqueio
+  const tentar = async () => {
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/admin/login")),
+      entrar(page, email, "senha-errada-qualquer"),
+    ]);
+    // O React limpa o formulário após a action; espera isso terminar e o e-mail voltar.
+    await expect(page.getByLabel("Senha")).toHaveValue("");
+    await expect(page.getByLabel("E-mail")).toHaveValue(email);
+  };
+  for (let i = 0; i < 5; i++) {
+    await tentar();
+    await expect(alerta).toHaveText("E-mail ou senha inválidos.");
+  }
+  await tentar();
+  await expect(alerta).toHaveText("Muitas tentativas. Tente novamente em alguns minutos.");
+});
+
 test("a tela de login é noindex e não tem violações graves de acessibilidade", async ({ page }) => {
   await page.goto("/admin/login");
   await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(1);
@@ -71,8 +92,14 @@ test.describe("com o usuário de teste", () => {
     expect(sessao?.httpOnly).toBe(true);
     expect(sessao?.sameSite).toBe("Lax");
 
-    await page.getByRole("button", { name: "Sair" }).click();
-    await expect(page).toHaveURL(/\/admin\/login$/);
+    // Um clique dado antes da hidratação pode se perder; repete até a saída acontecer.
+    await expect(async () => {
+      await page.getByRole("button", { name: "Sair" }).click({ timeout: 1500 });
+      await expect(page).toHaveURL(/\/admin\/login$/, { timeout: 3000 });
+    }).toPass({ timeout: 20_000 });
+    await expect
+      .poll(async () => (await context.cookies()).some((c) => c.name.includes("session-token")))
+      .toBe(false);
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/admin\/login$/);
   });
@@ -84,6 +111,12 @@ test.describe("com o usuário de teste", () => {
 
     await page.context().clearCookies();
     await page.goto("/admin/login?callbackUrl=https%3A%2F%2Fevil.example%2F");
+    await entrar(page, EMAIL!, PASSWORD!);
+    await expect(page).toHaveURL(/\/admin$/);
+    expect(new URL(page.url()).origin).toBe(new URL(baseURL!).origin);
+
+    await page.context().clearCookies();
+    await page.goto("/admin/login?callbackUrl=%2Fadmin%2F..%2F%2Fevil.example%2F");
     await entrar(page, EMAIL!, PASSWORD!);
     await expect(page).toHaveURL(/\/admin$/);
     expect(new URL(page.url()).origin).toBe(new URL(baseURL!).origin);

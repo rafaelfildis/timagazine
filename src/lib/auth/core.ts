@@ -57,7 +57,7 @@ export type CredentialsResult =
 
 /**
  * Confere e-mail e senha aplicando o limite de tentativas (5 falhas por e-mail em 15 min).
- * Toda falha é registrada; com o limite atingido a senha nem é conferida.
+ * Toda tentativa é registrada antes da conferência (e apagada no sucesso); acima do limite a senha nem é conferida.
  */
 export async function checkCredentials(
   db: Db,
@@ -79,20 +79,20 @@ export async function checkCredentials(
   await db
     .delete(loginAttempts)
     .where(and(eq(loginAttempts.email, normalized), lt(loginAttempts.attemptedAt, since)));
-  const [{ failures }] = await db
-    .select({ failures: sql<number>`count(*)::int` })
+  // Registra a tentativa ANTES de conferir a senha e conta incluindo-a: requisições
+  // paralelas não escapam do limite enquanto o argon2 roda. Sucesso apaga as tentativas.
+  await db.insert(loginAttempts).values({ email: normalized });
+  const [{ attempts }] = await db
+    .select({ attempts: sql<number>`count(*)::int` })
     .from(loginAttempts)
     .where(and(eq(loginAttempts.email, normalized), gte(loginAttempts.attemptedAt, since)));
-  if (failures >= LOGIN_MAX_ATTEMPTS) return { ok: false, reason: "locked" };
+  if (attempts > LOGIN_MAX_ATTEMPTS) return { ok: false, reason: "locked" };
 
   const [user] = await db.select().from(users).where(eq(users.email, normalized)).limit(1);
   const valid = await verify(user?.passwordHash ?? (await getDummyHash()), password).catch(
     () => false,
   );
-  if (!user || !valid) {
-    await db.insert(loginAttempts).values({ email: normalized });
-    return { ok: false, reason: "invalid" };
-  }
+  if (!user || !valid) return { ok: false, reason: "invalid" };
 
   await db.delete(loginAttempts).where(eq(loginAttempts.email, normalized));
   return { ok: true, user };

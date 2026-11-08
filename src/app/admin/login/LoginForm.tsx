@@ -32,6 +32,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
           autoComplete="username"
           required
           maxLength={254}
+          defaultValue={state?.email}
           className={FIELD}
         />
       </div>
